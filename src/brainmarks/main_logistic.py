@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 from cloudpathlib import S3Path
 from omegaconf import DictConfig, OmegaConf
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -34,6 +34,7 @@ METRICS = {
     "acc": sklearn.metrics.accuracy_score,
     "f1": partial(sklearn.metrics.f1_score, average="macro"),
     "bacc": sklearn.metrics.balanced_accuracy_score,
+    "auc": sklearn.metrics.roc_auc_score,
 }
 
 # sklearn scoring names for LogisticRegressionCV
@@ -41,6 +42,7 @@ SKLEARN_SCORING = {
     "acc": "accuracy",
     "f1": "f1_macro",
     "bacc": "balanced_accuracy",
+    "auc": "roc_auc",
 }
 
 
@@ -246,13 +248,19 @@ def evaluate(
         targets = targets_dict[split]
 
         preds = clf.predict(features)
+        pred_scores = None
+        if hasattr(clf[-1], "predict_proba"):
+            pred_scores = clf.predict_proba(features)[:, 1]
         record = {**header, "split": split}
 
-        bootstrap_result = bootstrap_ci(args, preds, targets)
+        bootstrap_result = bootstrap_ci(args, preds, targets, scores=pred_scores)
 
         for metric in args.metrics:
             metric_fn = METRICS[metric]
-            record[metric] = metric_fn(targets, preds)
+            if metric == "auc" and pred_scores is not None:
+                record[metric] = metric_fn(targets, pred_scores)
+            else:
+                record[metric] = metric_fn(targets, preds)
             record[f"{metric}_std"] = bootstrap_result[metric]["std"]
         table.append(record)
 
@@ -311,17 +319,31 @@ def extract_features(
     return features_dict, targets_dict
 
 
-def bootstrap_ci(args: DictConfig, preds: np.ndarray, targets: np.ndarray):
+def bootstrap_ci(
+    args: DictConfig,
+    preds: np.ndarray,
+    targets: np.ndarray,
+    scores: np.ndarray | None = None,
+):
     random_state = sklearn.utils.check_random_state(args.seed)
 
     sample_scores = defaultdict(list)
     for _ in range(500):
-        preds_, targets_ = sklearn.utils.resample(
-            preds, targets, random_state=random_state, stratify=targets
-        )
+        if scores is None:
+            preds_, targets_ = sklearn.utils.resample(
+                preds, targets, random_state=random_state, stratify=targets
+            )
+            scores_ = None
+        else:
+            preds_, targets_, scores_ = sklearn.utils.resample(
+                preds, targets, scores, random_state=random_state, stratify=targets
+            )
         for metric in args.metrics:
             metric_fn = METRICS[metric]
-            sample_scores[metric].append(metric_fn(targets_, preds_))
+            if metric == "auc" and scores_ is not None:
+                sample_scores[metric].append(metric_fn(targets_, scores_))
+            else:
+                sample_scores[metric].append(metric_fn(targets_, preds_))
 
     result = {}
     for metric, values in sample_scores.items():

@@ -16,12 +16,14 @@ import os
 import random
 import subprocess
 import time
+from collections.abc import Mapping, Sequence
 from collections import defaultdict, deque
 from urllib.parse import urlparse
 
 import numpy as np
 import torch
 import torch.distributed as dist
+from torch.utils.data import default_collate
 
 
 # these very useful utils copied from deit with only minor changes
@@ -358,6 +360,58 @@ def send_data(x, device=None):
     if isinstance(x, list):
         return [send_data(v, device=device) for v in x]
     return x
+
+
+def _collate_tensor(batch: Sequence[torch.Tensor]) -> torch.Tensor:
+    shape = batch[0].shape
+    if all(sample.shape == shape for sample in batch):
+        return torch.stack(batch, dim=0)
+
+    if not all(sample.ndim == batch[0].ndim for sample in batch):
+        shapes = [tuple(sample.shape) for sample in batch]
+        raise RuntimeError(f"cannot collate tensors with different ranks: {shapes}")
+
+    varying_dims = [
+        dim for dim in range(batch[0].ndim) if len({sample.shape[dim] for sample in batch}) > 1
+    ]
+    if len(varying_dims) != 1:
+        shapes = [tuple(sample.shape) for sample in batch]
+        raise RuntimeError(f"cannot collate tensors with incompatible shapes: {shapes}")
+
+    max_shape = tuple(max(sample.shape[dim] for sample in batch) for dim in range(batch[0].ndim))
+    out = batch[0].new_zeros((len(batch), *max_shape))
+    for idx, sample in enumerate(batch):
+        slices = (idx, *[slice(0, size) for size in sample.shape])
+        out[slices] = sample
+    return out
+
+
+def collate(batch):
+    """Collate samples without PyTorch's worker shared-storage tensor fast path.
+
+    HuggingFace Arrow datasets can yield tensors backed by non-resizable storage.
+    In multi-worker DataLoaders, PyTorch's default tensor collate path may try to
+    resize shared storage derived from those tensors and fail. Plain stack
+    allocates fresh batch storage. Tensors that differ along exactly one dimension
+    are zero-padded to the maximum size in the batch.
+    """
+    elem = batch[0]
+
+    if isinstance(elem, torch.Tensor):
+        return _collate_tensor(batch)
+    if isinstance(elem, np.ndarray) and elem.dtype.kind not in {"O", "S", "U"}:
+        return collate([torch.as_tensor(sample) for sample in batch])
+    if isinstance(elem, Mapping):
+        return {key: collate([sample[key] for sample in batch]) for key in elem}
+    if isinstance(elem, tuple) and hasattr(elem, "_fields"):
+        return type(elem)(*(collate(samples) for samples in zip(*batch)))
+    if isinstance(elem, Sequence) and not isinstance(elem, (str, bytes)):
+        elem_len = len(elem)
+        if not all(len(sample) == elem_len for sample in batch):
+            raise RuntimeError("each element in list of batch should be of equal size")
+        return [collate(samples) for samples in zip(*batch)]
+
+    return default_collate(batch)
 
 
 def pre_send_to_cuda_wrapper(generator, device=None):

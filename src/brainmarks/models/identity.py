@@ -24,9 +24,26 @@ def identity_schaefer400(**kwargs) -> IdentityBackbone:
     model.__space__ = "schaefer400"
     return model
 
-
 @register_model
 def identity_schaefer400_tians3(**kwargs) -> IdentityBackbone:
     model = IdentityBackbone()
     model.__space__ = "schaefer400_tians3"
+    return model
+
+@register_model
+def identity_mni(**kwargs) -> IdentityBackbone:
+    model = IdentityBackbone()
+    model.__space__ = "mni"
+    return model
+
+@register_model
+def identity_mni2(**kwargs) -> IdentityBackbone:
+    model = IdentityBackbone()
+    model.__space__ = "mni2"
+    return model
+
+@register_model
+def identity_a424(**kwargs) -> IdentityBackbone:
+    model = IdentityBackbone()
+    model.__space__ = "a424"
     return model

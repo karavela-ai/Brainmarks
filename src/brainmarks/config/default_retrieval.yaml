@@ -1,0 +1,52 @@
+
+output_root: output
+name_prefix: eval_retrieval
+remote_root: null
+notes: null
+
+model_kwargs: {}
+dataset_kwargs: {}
+
+finetune_mode: next
+
+target_embedding_key: text_embedding
+
+classifier_kwargs:
+  embed_dim: 4096
+  dropout: 0.5
+  xavier_init: false
+  norm: false
+
+num_workers: 8
+prefetch_factor: null
+
+epochs: 10
+batch_size: 32
+accum_iter: 1
+
+lr: 3e-4
+warmup_epochs: 0
+no_decay: true
+weight_decay: 3e-4
+clip_grad: 1.0
+
+temperature: 2e-2
+
+
+metrics:
+  - cosine
+  - top10
+  - mrr
+
+cv_metric: mrr
+early_stopping: true
+
+amp: true
+device: cuda
+
+seed: 0
+debug: false
+
+wandb: false
+wandb_entity: null
+wandb_project: brainmarks

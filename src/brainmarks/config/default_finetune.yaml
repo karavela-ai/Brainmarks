@@ -3,7 +3,7 @@
 #
 #   output_root/{name_prefix}/{dataset}__{model}__{representation}__{classifier}
 output_root: output
-name_prefix: eval_finetune
+name_prefix: eval_finetune_5
 
 # Remote root for backing up results
 # currently only S3 supported
@@ -48,18 +48,18 @@ full_ft:
   freeze_layers: null
 
 # Data loader
-num_workers: 8
-prefetch_factor: null
+num_workers: 12
+prefetch_factor: 8
 # oversample minority classes for balanced sampling
-balanced_sampling: false
+balanced_sampling: true
 
 # Optimization
 # 4k steps over 20 short epochs to help with early stopping and plotting
 epochs: 20
 steps_per_epoch: 200
 # total_batch_size = batch_size * accum_iter
-batch_size: 32
-accum_iter: 4
+batch_size: 8
+accum_iter: 1
 
 # Learning rates
 # base lr for LoRA backbone parameters
@@ -79,10 +79,13 @@ clip_grad: 1.0
 # scoring metrics
 metrics:
 - acc
+- f1
+- auc
+
 
 # any of the metrics, or neg_loss
 # assumes higher is better
-cv_metric: acc
+cv_metric: auc
 
 # evaluate best checkpoint wrt to cv score
 early_stopping: true

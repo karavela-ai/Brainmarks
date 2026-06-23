@@ -80,6 +80,10 @@ neurostorm = [
     "wheel",
 ]
 
+cortex-mae = [
+    "cortex-mae",
+]
+
 [tool.setuptools_scm]
 version_file = "src/brainmarks/version.py"
 

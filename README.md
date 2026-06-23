@@ -6,6 +6,7 @@
 
 Brainmarks is an open evaluation suite for fMRI foundation models.
 
+
 ## Installation
 
 ```bash
@@ -54,7 +55,31 @@ python -m brainmarks.main_logistic <model> <representation> <dataset>
 python -m brainmarks.main_logistic brainlm_vitmae_111m patch aabc_sex
 ```
 
-`representation` selects which embedding type the model exposes to the head: `cls`, `reg` (registers), or `patch`. Pass `--help` to either command to see the full list of available models and datasets. Use `--config` to pass a YAML config file and `--overrides key=value` for per-run overrides.
+**Retrieval**: trains a frozen-backbone retrieval head (linear, attention, or
+MLP) from brain embeddings to paired target embeddings:
+
+```bash
+python -m brainmarks.main_retrieval <model> <representation> <classifier> <dataset>
+# e.g.
+python -m brainmarks.main_retrieval brainlm_vitmae_111m patch linear cephalonauts_sub0
+```
+
+`representation` selects which embedding type the model exposes to the head:
+`cls`, `reg` (registers), or `patch`. Pass `--help` to any command to see the
+full list of available models and datasets. Use `--config` to pass a YAML config
+file and `--overrides key=value` for per-run overrides.
+
+**Comparison**: runs multiple models with shared comparison configs, reuses
+matching existing outputs, collects summary CSV files, and saves comparison plots:
+
+```bash
+python -m brainmarks.compare_logistic <dataset> <model1> <model2> ... \
+  --config src/brainmarks/config/compare_logistic.yaml
+#e.g.
+python -m brainmarks.compare_logistic aabc_sex brainlm_vitmae_111m brainlm_vitmae_111m_pretrained \
+  --config src/brainmarks/config/compare_logistic.yaml
+```
+
 
 ```bash
 # e.g.
@@ -68,7 +93,10 @@ python -m brainmarks.main_logistic \
   device=cpu
 ```
 
-All available options are documented in the default configs: [default_probe.yaml](src/brainmarks/config/default_probe.yaml), [default_logistic.yaml](src/brainmarks/config/default_logistic.yaml).
+All available options are documented in the default configs:
+[default_probe.yaml](src/brainmarks/config/default_probe.yaml),
+[default_logistic.yaml](src/brainmarks/config/default_logistic.yaml), and
+[default_retrieval.yaml](src/brainmarks/config/default_retrieval.yaml).
 
 ## Datasets
 
@@ -116,6 +144,36 @@ Adding a dataset involves two parts: curation scripts that preprocess raw data i
 
 Dataset loader modules are discovered via the same [namespace package plugin mechanism](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#using-namespace-packages) as models, so they can live in an external repo.
 
+## Additions (Karavela)
+
+This version extends the original Brainmarks project with new dataset support
+and evaluation utilities.
+
+**New datasets**
+
+- **Cephalonauts One**: adds loaders and curation scripts for the
+  Cephalonauts One dataset. The generated Arrow datasets use
+  paired fMRI samples and transcript-derived text embeddings for retrieval
+  evaluation. See [datasets/Cephalonauts_One/](datasets/Cephalonauts_One/) and
+  [src/brainmarks/datasets/cephalonauts_one.py](src/brainmarks/datasets/cephalonauts_one.py).
+- **OASIS**: adds loaders and curation scripts for OASIS resting-state fMRI,
+  including run identification, subject-level train/validation/test splits, and
+  Arrow dataset generation for diagnosis, age, sex, and cognitively-normal
+  conversion targets. See [datasets/OASIS/](datasets/OASIS/) and
+  [src/brainmarks/datasets/oasis.py](src/brainmarks/datasets/oasis.py).
+
+  Because these two datasets are not stored in the Brainmarks R2 bucket you would need to first create the processed version of the datasets using the scripts in the respective dataset folders. See the README files in those folders for instructions.
+
+**New evaluation workflows**
+
+- **Retrieval evaluation**: adds `brainmarks.main_retrieval`, which trains a
+  frozen-backbone retrieval head to align brain embeddings with paired target
+  embeddings such as Cephalonauts transcript embeddings. 
+- **Comparison runners**: adds `brainmarks.compare_logistic` and
+  `brainmarks.compare_retrieval` to run multiple models with shared comparison
+  configs, reuse matching existing outputs, collect summary CSV files, and save
+  comparison plots.
+
 ## Support
 
 For help with any issues, reach out to us on [MedARC Discord](https://discord.gg/tVR4TWnRM9) in the `#neuro-fm` channel.
@@ -123,15 +181,16 @@ For help with any issues, reach out to us on [MedARC Discord](https://discord.gg
 ## Citation
 
 ```bibtex
-@inproceedings{lane2026scaling,
-    title={Scaling Vision Transformers for Functional MRI with Flat Maps},
-    author={Connor Lane and Mihir Tripathy and Leema Krishna Murali and
-            Ratna Sagari Grandhi and Shamus Sim Zi Yang and Sam Gijsen and
-            Debojyoti Das and Manish Ram and Utkarsh Kumar Singh and
-            Cesar Kadir Torrico Villanueva and Yuxiang Wei and Will Beddow and
-            Gianfranco Cortés and Suin Cho and Daniel Z. Kaplan
-            and Benjamin Warner and Tanishq Mathew Abraham and Paul S. Scotti},
-    booktitle={ICML},
-    year={2026},
+@article{lane2025scaling,
+  title   = {Scaling Vision Transformers for Functional {MRI} with Flat Maps},
+  author  = {Lane, Connor and Tripathy, Mihir and Murali, Leema Krishna and
+             Grandhi, Ratna Sagari and Yang, Shamus Sim Zi and Gijsen, Sam and
+             Das, Debojyoti and Ram, Manish and Singh, Utkarsh Kumar and
+             Villanueva, Cesar Kadir Torrico and Wei, Yuxiang and Beddow, Will and
+             Cort\'{e}s, Gianfranco and Cho, Suin and Kaplan, Daniel Z. and
+             Warner, Benjamin and Abraham, Tanishq Mathew and Scotti, Paul S.},
+  journal = {arXiv preprint arXiv:2510.13768},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2510.13768}
 }
 ```

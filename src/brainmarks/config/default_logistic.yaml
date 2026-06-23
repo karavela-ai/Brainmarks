@@ -25,19 +25,20 @@ cv_folds: 5
 max_iter: 1000
 Cs: 10  # number of regularization values to try (log-spaced)
 # use class_weight='balanced' for imbalanced classes
-balanced_sampling: false
+balanced_sampling: true
 
 # scoring metrics
 metrics:
 - acc
 - f1
 - bacc
+- auc
 
 # metric for CV selection (passed to LogisticRegressionCV scoring)
-cv_metric: bacc
+cv_metric: auc
 
 # number of randomized split trials (0 to disable)
-n_trials: 100
+n_trials: 10
 
 amp: true
 

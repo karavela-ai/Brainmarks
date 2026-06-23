@@ -30,6 +30,7 @@ from nilearn.image import resample_img
 from scipy.sparse import coo_array
 from scipy.spatial import Delaunay
 from sklearn.neighbors import NearestNeighbors
+from neuromaps.transforms import fsaverage_to_fslr
 
 # quiet nibabel warning
 # pixdim[1,2,3] should be non-zero; setting 0 dims to 1
@@ -37,7 +38,7 @@ logging.getLogger("nibabel").setLevel(logging.ERROR)
 
 FSLR64K_NUM_VERTICES = 64984
 FSLR91K_NUM_VERTICES = 91282
-
+RESOURCES_DIR = Path(__file__).parent.parent.parent / "resources" 
 
 # NIFTI/CIFTI related utils
 
@@ -129,14 +130,27 @@ def get_brain_model_axis(cifti: Cifti2Image) -> BrainModelAxis:
 
 
 def read_gifti_surf_data(path: str | Path) -> np.ndarray:
-    path_lh = str(path).replace(".rh", ".lh")
-    path_rh = str(path).replace(".lh", ".rh")
+    
+    if "fsaverage" in path:
+        
+        path_lh = path.replace("hemi-R", "hemi-L")
+        path_rh = path.replace("hemi-L", "hemi-R")
 
-    img_lh = nib.load(path_lh)
-    series_lh = np.stack([da.data for da in img_lh.darrays])
+        
+        img_lh, img_rh = fsaverage_to_fslr(
+            (path_lh, path_rh),
+        )
+        series_lh = np.stack([da.data for da in img_lh.darrays]).T
+        series_rh = np.stack([da.data for da in img_rh.darrays]).T
+    else:
+        path_lh = path.replace(".rh", ".lh")
+        path_rh = path.replace(".lh", ".rh")
 
-    img_rh = nib.load(path_rh)
-    series_rh = np.stack([da.data for da in img_rh.darrays])
+        img_lh = nib.load(path_lh)
+        series_lh = np.stack([da.data for da in img_lh.darrays])
+
+        img_rh = nib.load(path_rh)
+        series_rh = np.stack([da.data for da in img_rh.darrays])
 
     series = np.concatenate([series_lh, series_rh], axis=1)
     return series
@@ -810,6 +824,12 @@ def resample_timeseries(
     # Trim any extra points outside of bounds. This can happen if new_tr < tr.
     new_x = new_x[new_x <= x[-1]]
 
+    if len(series) < 2:
+        return np.repeat(series, max(len(new_x), 1), axis=0)
+
+    if kind in {"cubic", "quadratic"} and len(series) < 4:
+        kind = "linear"
+
     if kind == "pchip":
         interp = scipy.interpolate.PchipInterpolator(x, series, axis=0)
     else:
@@ -891,6 +911,7 @@ def fsaverage_to_32k_fs_LR(
             data = np.squeeze(data, 0)
 
     return data
+    
 
 
 # Plotting

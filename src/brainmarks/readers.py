@@ -3,6 +3,12 @@ from typing import Protocol
 import numpy as np
 import nibabel as nib
 from templateflow import api as tflow
+from nilearn.image import new_img_like, resample_to_img, smooth_img
+from nilearn.maskers import NiftiMasker
+from nilearn.signal import clean as clean_signal
+from nilearn.datasets import load_mni152_template
+
+
 
 from . import nisc
 
@@ -137,6 +143,17 @@ def mni_reader() -> Reader:
 
     return fn
 
+def mni2_reader() -> Reader:
+    masker_path = "resources/tpl-MNI152NLin6Asym_desc-brain_mask.nii.gz"
+    masker = nib.load(masker_path)
+    masker_data = np.ascontiguousarray(masker.get_fdata().T)
+
+    def fn(path:str):
+        img = nib.load(path)
+        data = np.ascontiguousarray(img.get_fdata().T)
+        result = data[:,masker_data > 0]
+        return result
+    return fn
 
 # NOTE: this changed from LAS to RAS orientation on 2026-01-14
 # MNI derived spaces generated before this date are invalid:
@@ -163,6 +180,7 @@ READER_DICT = {
     "flat": flat_reader,
     "mni": mni_reader,
     "mni_cortex": mni_cortex_reader,
+    "mni2": mni2_reader,
 }
 
 
@@ -176,6 +194,7 @@ DATA_DIMS = {
     "flat": 77763,
     "mni": 228483,
     "mni_cortex": 132032,
+    "mni2": 67676,
 }
 
 
@@ -183,6 +202,7 @@ VOLUME_SPACES = {
     "schaefer400_tians3_buckner7",
     "mni",
     "mni_cortex",
+    "mni2",
 }
 
 

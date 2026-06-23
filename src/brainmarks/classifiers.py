@@ -134,12 +134,26 @@ class MLPClassifier(nn.Module):
         if x.ndim == 3:
             x = x.mean(dim=1)
         return x
+    
+class BaselineClassifier(nn.Module):
+    def __init__(self,in_dim: int, out_dim: int, embed_dim: int, dropout: float):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(in_dim, embed_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(embed_dim, out_dim),
+        )
+    def forward(self, x: Tensor) -> Tensor:
+        return self.model(x)
 
 
 CLASSIFIERS = {
     "linear": LinearClassifier,
     "attn": AttnPoolClassifier,
     "mlp": MLPClassifier,
+    "baseline": BaselineClassifier,
+
 }
 
 

@@ -1,0 +1,110 @@
+# Config for:
+#
+#   python -m brainmarks.compare_logistic_models <dataset> <model1> <model2> ... \
+#     --config src/brainmarks/config/compare_logistic.yaml
+
+logistic_config: src/brainmarks/config/default_logistic.yaml
+
+output_root: output
+name_prefix: compare_logistic
+
+default_representation: cls
+
+# Global overrides passed to every main_logistic run.
+# Can be written as a mapping...
+overrides:
+  n_trials: 10
+
+
+# ...or as dotlist strings:
+# overrides:
+# - n_trials=0
+# - batch_size=64
+# - num_workers=8
+
+# Per-model settings. Only models passed on the command line are run.
+models:
+  
+  connectome_schaefer400:
+    representation: cls
+    type: parcel
+
+  connectome_schaefer400_tians3:
+    representation: cls
+    type: parcel
+
+  cortex_mae_parcel:
+    representation: cls
+    type: parcel
+
+  cortex_mae_flat:
+    representation: cls
+    type: flat
+
+  cortex_mae_volume:
+    representation: cls
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+  brainlm_13m:
+    representation: cls
+    type: parcel
+    overrides:
+      batch_size: 16
+
+  brainlm_vitmae_111m:
+    representation: cls
+    type: parcel
+
+  brainlm_vitmae_650m:
+    representation: cls
+    type: parcel
+
+  brain_jepa_vitb_ep300:
+    representation: patch
+    type: parcel
+
+  brain_harmonix_f:
+    representation: patch
+    type: parcel
+
+  brain_semantoks:
+    representation: patch
+    type: parcel
+
+  swift:
+    representation: patch
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+  neurostorm:
+    representation: patch
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+  neurostorm_0p8:
+    representation: patch
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+
+
+# Plot/summary settings.
+metrics: 
+  - acc
+  - auc
+
+eval_split: test
+# auto uses randomized trials when present, otherwise the fixed split.
+summary_source: auto
+
+# Reuse existing eval_table.csv files when available.
+skip_existing: true

@@ -40,6 +40,7 @@ METRICS = {
     "acc": sklearn.metrics.accuracy_score,
     "f1": partial(sklearn.metrics.f1_score, average="macro"),
     "bacc": sklearn.metrics.balanced_accuracy_score,
+    "auc": sklearn.metrics.roc_auc_score,
 }
 
 

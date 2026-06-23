@@ -1,0 +1,139 @@
+# Config for:
+#
+#   python -m brainmarks.compare_retrieval <dataset> <model1> <model2> ... \
+#     --config src/brainmarks/config/compare_retrieval.yaml
+
+retrieval_config: src/brainmarks/config/default_retrieval.yaml
+
+output_root: output
+name_prefix: compare_retrieval
+
+# Defaults for models not listed below.
+default_representation: cls
+default_classifier: linear
+
+# Global overrides applied to every main_retrieval run.
+# Can be a mapping...
+overrides:
+  epochs: 10
+
+# ...or dotlist strings:
+# overrides:
+# - name_prefix=compare_retrieval
+# - batch_size=16
+# - num_workers=8
+# - device=cpu
+
+# Per-model settings. Only models passed on the command line are run.
+models:
+
+  identity_schaefer400:
+    representation: patch
+    classifier: attn
+    type: parcel
+
+  identity_mni2:
+    representation: patch
+    classifier: linear
+    type: volume
+
+  identity_a424:
+    representation: patch
+    classifier: linear
+    type: volume
+
+  connectome_schaefer400:
+    representation: cls
+    classifier: linear
+    type: parcel
+
+  connectome_schaefer400_tians3:
+    representation: cls
+    classifier: linear
+    type: parcel
+
+  cortex_mae_parcel:
+    representation: patch
+    classifier: attn
+    type: parcel
+
+  cortex_mae_flat:
+    representation: patch
+    classifier: attn
+    type: flat
+
+  cortex_mae_volume:
+    representation: patch
+    classifier: attn
+    type: volume
+
+  brainlm_13m:
+    representation: cls
+    classifier: linear
+    type: parcel
+    overrides:
+      batch_size: 16
+
+  brainlm_vitmae_111m:
+    representation: cls
+    classifier: linear
+    type: parcel
+
+  brainlm_vitmae_650m:
+    representation: cls
+    classifier: linear
+    type: parcel
+
+  brain_jepa_vitb_ep300:
+    representation: patch
+    classifier: linear
+    type: parcel
+
+  brain_harmonix_f:
+    representation: patch
+    classifier: linear
+    type: parcel
+
+  brain_semantoks:
+    representation: patch
+    classifier: linear
+    type: parcel
+
+  swift:
+    representation: patch
+    classifier: linear
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+  neurostorm:
+    representation: patch
+    classifier: linear
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+  neurostorm_0p8:
+    representation: patch
+    classifier: linear
+    type: volume
+    overrides:
+      batch_size: 4
+      num_workers: 4
+
+# Plot/summary settings. These are direct values from eval_table.csv: no std,
+# no confidence intervals.
+metrics:
+  - cosine
+  - top10
+  - mrr
+eval_split: test
+checkpoint: null
+
+# Reuse existing eval_table.csv files when the saved config matches.
+skip_existing: true
+
+summary_name: retrieval_comparison.csv
+plot_name: retrieval_comparison_plot.png

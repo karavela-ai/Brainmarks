@@ -172,7 +172,7 @@ def train_one_epoch(
     device: torch.device,
 ):
     model.train()
-    if args.finetune_mode != "full":
+    if not args.full_finetune:
         model.backbone.eval()
     use_cuda = device.type == "cuda"
     log_wandb = args.wandb and ut.is_main_process()
@@ -461,7 +461,7 @@ def main(args: DictConfig):
     print(f"creating backbone model: {args.model}")
     transform, backbone = create_model(args.model, **(args.model_kwargs or {}))
 
-    if args.finetune_mode == "full":
+    if args.full_finetune:
         backbone.requires_grad_(True)
     else:
         backbone.requires_grad_(False)

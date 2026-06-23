@@ -7,7 +7,7 @@ notes: null
 model_kwargs: {}
 dataset_kwargs: {}
 
-finetune_mode: next
+full_finetune: false
 
 target_embedding_key: text_embedding
 
